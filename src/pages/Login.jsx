@@ -1,4 +1,8 @@
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
   Button,
   Card,
   CardBody,
@@ -11,12 +15,27 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useState } from "react";
+import axios from "../lib/axios";
+import { useNavigate } from "react-router-dom";
+
+const ErrorMessage = ({ error }) => {
+  if (!error) return null;
+  return (
+    <Alert status="error">
+      <AlertIcon />
+      {error}
+    </Alert>
+  );
+};
 
 export default () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+
+  const [error, setError] = useState("");
 
   const handleInputChange = (e) =>
     setForm((prev) => {
@@ -25,9 +44,18 @@ export default () => {
       return { ...prev };
     });
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    console.log(form);
+    try {
+      const { data } = await axios.post("/login", form);
+      const { user, token } = data;
+      // TODO: taroh di store
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      navigate("/");
+    } catch (error) {
+      setError(error.response.data.message);
+    }
   };
 
   return (
@@ -41,12 +69,14 @@ export default () => {
         <CardBody>
           <form onSubmit={handleFormSubmit} style={{ width: "270px" }}>
             <Stack spacing={7}>
+              <ErrorMessage error={error} />
               <FormControl>
                 <Input
                   type="text"
                   name="email"
                   onChange={handleInputChange}
                   placeholder="Username"
+                  isRequired
                 />
               </FormControl>
               <FormControl>
@@ -55,6 +85,7 @@ export default () => {
                   name="password"
                   onChange={handleInputChange}
                   placeholder="Password"
+                  isRequired
                 />
               </FormControl>
               <Button
